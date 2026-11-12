@@ -234,6 +234,12 @@ export const api = {
   getPicDashboard: (id: number) =>
     fetchApi(`/pic/${id}/dashboard`),
 
+  updatePicWaGroup: (picId: number, waGroupLink: string | null) =>
+    fetchApi(`/pic/${picId}/wa-group`, {
+      method: 'PUT',
+      body: JSON.stringify({ wa_group_link: waGroupLink }),
+    }),
+
   createMc: (picId: number, payload: McPayload) =>
     fetchApi(`/pic/${picId}/mcs`, {
       method: 'POST',

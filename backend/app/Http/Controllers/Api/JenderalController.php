@@ -21,15 +21,13 @@ class JenderalController extends Controller
         $totalPics = Pic::count();
         $totalMcs = Mc::count();
         $totalAnggota = Anggota::count();
-        $targetCapacity = $totalMcs * Mc::MAX_QUOTA;
 
         $mcCounts = Mc::withCount('anggotas')->get(['id', 'pic_id', 'nama']);
 
         // Sebaran anggota per wilayah PIC
-        $regions = Pic::orderBy('wilayah')->get(['id', 'nama', 'wilayah'])->map(function ($pic) use ($mcCounts) {
+        $regions = Pic::orderBy('wilayah')->get(['id', 'nama', 'wilayah'])->map(function ($pic) use ($mcCounts, $totalAnggota) {
             $mcs = $mcCounts->where('pic_id', $pic->id);
             $anggota = $mcs->sum('anggotas_count');
-            $capacity = $mcs->count() * Mc::MAX_QUOTA;
 
             return [
                 'pic_id' => $pic->id,
@@ -37,8 +35,8 @@ class JenderalController extends Controller
                 'wilayah' => $pic->wilayah,
                 'total_mc' => $mcs->count(),
                 'total_anggota' => $anggota,
-                'capacity' => $capacity,
-                'filled_pct' => $capacity > 0 ? round(($anggota / $capacity) * 100, 1) : 0,
+                // Porsi wilayah ini terhadap seluruh anggota nasional
+                'share_pct' => $totalAnggota > 0 ? round(($anggota / $totalAnggota) * 100, 1) : 0,
             ];
         })->sortByDesc('total_anggota')->values();
 
@@ -50,7 +48,6 @@ class JenderalController extends Controller
                 'nama' => $mc->nama,
                 'wilayah' => $mc->pic?->wilayah,
                 'anggota' => $mc->anggotas_count,
-                'quota_max' => Mc::MAX_QUOTA,
             ]);
 
         $recentMembers = Anggota::with(['mc:id,pic_id,nama', 'mc.pic:id,wilayah'])
@@ -71,11 +68,11 @@ class JenderalController extends Controller
                     'total_pics' => $totalPics,
                     'total_mcs' => $totalMcs,
                     'total_anggota' => $totalAnggota,
-                    'target_capacity' => $targetCapacity,
-                    'capacity_filled_pct' => $targetCapacity > 0 ? round(($totalAnggota / $targetCapacity) * 100, 1) : 0,
+                    'avg_per_mc' => $totalMcs > 0 ? round($totalAnggota / $totalMcs, 1) : 0,
                     'via_link' => Anggota::where('created_by', 'self')->count(),
                     'by_mc' => Anggota::where('created_by', 'mc')->count(),
-                    'mcs_full' => $mcCounts->where('anggotas_count', '>=', Mc::MAX_QUOTA)->count(),
+                    'with_feedback' => Anggota::whereNotNull('masukan')->where('masukan', '!=', '')->count(),
+                    'mcs_active' => $mcCounts->where('anggotas_count', '>', 0)->count(),
                     'mcs_empty' => $mcCounts->where('anggotas_count', 0)->count(),
                     'pics_without_mc' => $regions->where('total_mc', 0)->count(),
                 ],

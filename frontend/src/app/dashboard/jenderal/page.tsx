@@ -28,11 +28,11 @@ type Kpi = {
   total_pics: number;
   total_mcs: number;
   total_anggota: number;
-  target_capacity: number;
-  capacity_filled_pct: number;
+  avg_per_mc: number;
   via_link: number;
   by_mc: number;
-  mcs_full: number;
+  with_feedback: number;
+  mcs_active: number;
   mcs_empty: number;
   pics_without_mc: number;
 };
@@ -43,8 +43,7 @@ type Region = {
   wilayah: string;
   total_mc: number;
   total_anggota: number;
-  capacity: number;
-  filled_pct: number;
+  share_pct: number;
 };
 
 type TopMc = {
@@ -52,7 +51,6 @@ type TopMc = {
   nama: string;
   wilayah: string | null;
   anggota: number;
-  quota_max: number;
 };
 
 type RecentMember = {
@@ -231,15 +229,15 @@ function JenderalDashboard() {
         {
           label: 'Total Anggota',
           value: kpi.total_anggota,
-          note: `Target kapasitas ${kpi.target_capacity}`,
+          note: `${kpi.with_feedback} memberi kritik & masukan`,
           icon: UserCheck,
           tone: 'bg-emerald-50 text-emerald-700',
           href: '/anggota',
         },
         {
-          label: 'Capaian Kuota',
-          value: `${kpi.capacity_filled_pct}%`,
-          note: `${kpi.mcs_full} MC penuh · ${kpi.mcs_empty} MC kosong`,
+          label: 'Rata-rata per MC',
+          value: kpi.avg_per_mc,
+          note: `${kpi.mcs_active} MC aktif · ${kpi.mcs_empty} MC kosong`,
           icon: Target,
           tone: 'bg-amber-50 text-amber-700',
           href: '/mc',
@@ -247,7 +245,7 @@ function JenderalDashboard() {
         {
           label: 'MC Koordinator',
           value: kpi.total_mcs,
-          note: `Maks. 10 anggota per MC`,
+          note: 'Tanpa batas anggota per MC',
           icon: Users,
           tone: 'bg-blue-50 text-blue-700',
           href: '/mc',
@@ -358,12 +356,12 @@ function JenderalDashboard() {
 
             {/* MC teratas */}
             <div className="rounded-2xl border border-slate-200 bg-white p-5 lg:col-span-2">
-              <div className="flex items-center justify-between">
+              <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="text-sm font-bold text-slate-900">MC dengan Anggota Terbanyak</h3>
                   <p className="mt-1 text-xs text-slate-500">5 MC teratas berdasarkan jumlah anggota.</p>
                 </div>
-                <Link href="/mc" className="text-xs font-semibold text-[#0d5c4d] hover:underline">
+                <Link href="/mc" className="shrink-0 text-xs font-semibold text-[#0d5c4d] hover:underline">
                   Lihat semua MC
                 </Link>
               </div>
@@ -373,7 +371,9 @@ function JenderalDashboard() {
               ) : (
                 <div className="mt-4 space-y-3">
                   {data.top_mcs.map((mc) => {
-                    const pct = Math.min(100, Math.round((mc.anggota / mc.quota_max) * 100));
+                    // Bar relatif terhadap MC dengan anggota terbanyak
+                    const topCount = Math.max(1, data.top_mcs[0]?.anggota ?? 1);
+                    const pct = Math.round((mc.anggota / topCount) * 100);
                     return (
                       <div key={mc.id}>
                         <div className="flex items-center justify-between text-sm">
@@ -382,12 +382,12 @@ function JenderalDashboard() {
                             {mc.wilayah && <span className="ml-2 text-xs font-normal text-slate-400">{mc.wilayah}</span>}
                           </span>
                           <span className="ml-3 shrink-0 font-mono text-xs text-slate-600">
-                            {mc.anggota}/{mc.quota_max}
+                            {mc.anggota} anggota
                           </span>
                         </div>
                         <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-100">
                           <div
-                            className={`h-full rounded-full ${pct >= 100 ? 'bg-red-500' : 'bg-[#0d5c4d]'}`}
+                            className="h-full rounded-full bg-[#0d5c4d]"
                             style={{ width: `${pct}%` }}
                           />
                         </div>
@@ -405,18 +405,18 @@ function JenderalDashboard() {
               <div>
                 <h3 className="text-sm font-bold text-slate-900">Sebaran Anggota per Wilayah</h3>
                 <p className="mt-1 text-xs text-slate-500">
-                  Jumlah MC dan anggota di tiap wilayah PIC dibandingkan kapasitasnya.
+                  Jumlah MC dan anggota di tiap wilayah PIC, beserta porsinya secara nasional.
                 </p>
               </div>
 
-              <div className="relative">
+              <div className="relative w-full sm:w-64">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <input
-                  type="text"
+                  type="search"
                   placeholder="Cari wilayah atau PIC..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-64 max-w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-800 outline-none focus:border-[#0d5c4d]"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-800 outline-none focus:border-[#0d5c4d]"
                 />
               </div>
             </div>
@@ -428,14 +428,45 @@ function JenderalDashboard() {
                   : 'Tidak ditemukan wilayah yang sesuai dengan pencarian.'}
               </p>
             ) : (
-              <div className="overflow-x-auto">
+              <>
+              {/* Daftar wilayah untuk layar kecil */}
+              <ul className="divide-y divide-slate-100 md:hidden">
+                {regions.map((region) => (
+                  <li key={region.pic_id} className="py-3 first:pt-0 last:pb-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="inline-flex items-center gap-1.5 font-semibold text-slate-800">
+                          <MapPin className="h-3.5 w-3.5 text-slate-400" />
+                          {region.wilayah}
+                        </p>
+                        <p className="mt-0.5 text-xs text-slate-500">
+                          {region.pic_nama} · {region.total_mc} MC
+                        </p>
+                      </div>
+                      <span className="shrink-0 font-mono text-xs font-semibold text-slate-700">
+                        {region.total_anggota} ({region.share_pct}%)
+                      </span>
+                    </div>
+                    {region.total_mc > 0 && (
+                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          className="h-full rounded-full bg-[#0d5c4d]"
+                          style={{ width: `${Math.min(100, region.share_pct)}%` }}
+                        />
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+
+              <div className="hidden overflow-x-auto md:block">
                 <table className="w-full min-w-[700px] text-left text-sm">
                   <thead>
                     <tr className="border-b border-slate-100 text-xs text-slate-400">
                       <th className="pb-3 pl-2 font-medium">Wilayah</th>
                       <th className="pb-3 font-medium">PIC</th>
                       <th className="pb-3 text-center font-medium">Jumlah MC</th>
-                      <th className="pb-3 font-medium">Anggota / Kapasitas</th>
+                      <th className="pb-3 font-medium">Anggota (Porsi Nasional)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -459,11 +490,11 @@ function JenderalDashboard() {
                               <div className="h-2 w-40 overflow-hidden rounded-full bg-slate-100">
                                 <div
                                   className="h-full rounded-full bg-[#0d5c4d]"
-                                  style={{ width: `${Math.min(100, region.filled_pct)}%` }}
+                                  style={{ width: `${Math.min(100, region.share_pct)}%` }}
                                 />
                               </div>
                               <span className="font-mono text-xs text-slate-600">
-                                {region.total_anggota}/{region.capacity} ({region.filled_pct}%)
+                                {region.total_anggota} ({region.share_pct}%)
                               </span>
                             </div>
                           )}
@@ -473,6 +504,7 @@ function JenderalDashboard() {
                   </tbody>
                 </table>
               </div>
+              </>
             )}
           </div>
 
@@ -562,12 +594,12 @@ function JenderalDashboard() {
       {/* Modal Tambah PIC */}
       {showAddPicModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-0 sm:items-center sm:p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget && !submitting) setShowAddPicModal(false);
           }}
         >
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+          <div className="max-h-[92dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-t-3xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:p-6">
             <h2 className="text-lg font-bold text-slate-900">Tambah Koordinator Wilayah (PIC)</h2>
             <p className="mt-1 text-xs text-slate-500">
               Menugaskan penanggung jawab wilayah yang akan mengelola MC di wilayah tersebut.

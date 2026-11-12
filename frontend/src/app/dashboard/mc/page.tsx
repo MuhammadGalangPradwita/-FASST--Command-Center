@@ -11,14 +11,14 @@ import {
   X,
   AlertCircle,
   Link2,
-  MapPin,
-  MessageSquare,
+  Users,
+  MessageCircle,
 } from 'lucide-react';
 
 import { api, getStoredAuth } from '@/lib/api';
 import AuthGuard from '@/components/auth/AuthGuard';
 import PageHeader from '@/components/PageHeader';
-import RegistrationLink, { getRegistrationUrl } from '@/components/RegistrationLink';
+import RegistrationQr from '@/components/RegistrationQr';
 
 type McDashboard = {
   mc: {
@@ -28,14 +28,9 @@ type McDashboard = {
     link_token: string;
     pic_nama: string | null;
     wilayah: string | null;
+    wa_group_ready: boolean;
   };
-  quota: {
-    current: number;
-    max: number;
-    remaining: number;
-    percentage: number;
-    is_full: boolean;
-  };
+  total_members: number;
   members: Member[];
 };
 
@@ -44,6 +39,11 @@ type Member = {
   nama: string;
   nik: string;
   no_hp: string;
+  jurusan: string | null;
+  angkatan: number | null;
+  domisili: string | null;
+  pekerjaan: string | null;
+  masukan: string | null;
   created_by: 'self' | 'mc';
   created_at: string;
 };
@@ -52,9 +52,21 @@ type MemberForm = {
   nama: string;
   nik: string;
   no_hp: string;
+  jurusan: string;
+  angkatan: string;
+  domisili: string;
+  pekerjaan: string;
 };
 
-const initialForm: MemberForm = { nama: '', nik: '', no_hp: '' };
+const initialForm: MemberForm = {
+  nama: '',
+  nik: '',
+  no_hp: '',
+  jurusan: '',
+  angkatan: '',
+  domisili: '',
+  pekerjaan: '',
+};
 
 function getErrorMessage(err: unknown, fallback: string): string {
   return err instanceof Error && err.message ? err.message : fallback;
@@ -142,7 +154,15 @@ function McDashboardContent() {
 
   const openEditForm = (member: Member) => {
     setEditingMember(member);
-    setForm({ nama: member.nama, nik: member.nik, no_hp: member.no_hp });
+    setForm({
+      nama: member.nama,
+      nik: member.nik,
+      no_hp: member.no_hp,
+      jurusan: member.jurusan ?? '',
+      angkatan: member.angkatan ? String(member.angkatan) : '',
+      domisili: member.domisili ?? '',
+      pekerjaan: member.pekerjaan ?? '',
+    });
     setFormError('');
     setShowForm(true);
   };
@@ -156,6 +176,10 @@ function McDashboardContent() {
       nama: form.nama.trim(),
       nik: form.nik.trim(),
       no_hp: form.no_hp.trim(),
+      jurusan: form.jurusan.trim() || null,
+      angkatan: form.angkatan ? Number(form.angkatan) : null,
+      domisili: form.domisili.trim() || null,
+      pekerjaan: form.pekerjaan.trim() || null,
     };
 
     try {
@@ -212,18 +236,17 @@ function McDashboardContent() {
     );
   }
 
-  const { mc, quota, members } = data;
-  const registrationUrl = getRegistrationUrl(mc.link_token);
-  const shareText = `Halo! Silakan daftar sebagai anggota tim melalui link berikut: ${registrationUrl}`;
+  const { mc, total_members: totalMembers, members } = data;
 
   const filteredMembers = members.filter((member) => {
     const query = search.trim().toLowerCase();
-    return [member.nama, member.nik, member.no_hp].some((value) =>
-      value.toLowerCase().includes(query),
+    return [member.nama, member.nik, member.no_hp, member.jurusan, member.angkatan?.toString()].some(
+      (value) => value?.toLowerCase().includes(query),
     );
   });
 
   const stats = [
+    { label: 'Total Anggota', value: totalMembers, icon: Users, tone: 'bg-slate-100 text-slate-700' },
     { label: 'Daftar via Link', value: members.filter((m) => m.created_by === 'self').length, icon: Link2, tone: 'bg-emerald-50 text-emerald-700' },
     { label: 'Ditambahkan MC', value: members.filter((m) => m.created_by === 'mc').length, icon: UserPlus, tone: 'bg-blue-50 text-blue-700' },
   ];
@@ -242,38 +265,30 @@ function McDashboardContent() {
         </div>
       )}
 
-      {/* Ringkasan kuota anggota */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
-        <div className="col-span-2 rounded-2xl border border-slate-200 bg-white p-5 sm:col-span-1">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-slate-500">Kuota Anggota</p>
-            <span
-              className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
-                quota.is_full
-                  ? 'bg-red-50 text-red-700'
-                  : 'bg-emerald-50 text-emerald-700'
-              }`}
-            >
-              {quota.is_full ? 'PENUH' : `Sisa ${quota.remaining}`}
-            </span>
-          </div>
-          <p className="mt-1 text-2xl font-bold text-slate-900">
-            {quota.current}/{quota.max}
-          </p>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-100">
-            <div
-              className={`h-full rounded-full ${quota.is_full ? 'bg-red-500' : 'bg-[#0d5c4d]'}`}
-              style={{ width: `${Math.min(100, quota.percentage)}%` }}
-            />
-          </div>
-        </div>
+      {/* QR code & link pendaftaran: ditaruh paling atas agar langsung terlihat saat MC login */}
+      <RegistrationQr token={mc.link_token} mcNama={mc.nama} />
 
-        {stats.map((stat) => {
+      {!mc.wa_group_ready && (
+        <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+          <MessageCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+          <span>
+            Link grup WhatsApp wilayah belum diisi oleh PIC
+            {mc.pic_nama ? ` ${mc.pic_nama}` : ''}. Pendaftar tetap tercatat, tapi belum diarahkan ke
+            grup. Minta PIC mengisinya di dashboard PIC.
+          </span>
+        </div>
+      )}
+
+      {/* Ringkasan anggota */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+        {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
             <div
               key={stat.label}
-              className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:gap-4 sm:p-5"
+              className={`flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:flex-row sm:items-center sm:gap-4 sm:p-5 ${
+                index === 0 ? 'col-span-2 sm:col-span-1' : ''
+              }`}
             >
               <div className={`rounded-xl p-3 ${stat.tone}`}>
                 <Icon className="h-6 w-6" />
@@ -287,42 +302,6 @@ function McDashboardContent() {
         })}
       </div>
 
-      {/* Link pendaftaran */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0 space-y-1">
-            <h3 className="flex items-center gap-2 text-sm font-bold text-slate-900">
-              <Link2 className="h-4 w-4 text-[#0d5c4d]" />
-              Link Pendaftaran Anggota
-            </h3>
-            <p className="text-xs text-slate-500">
-              Bagikan link ini ke calon anggota. Yang mendaftar lewat link ini
-              otomatis masuk ke kelompok Anda.
-            </p>
-            <p className="break-all rounded-lg bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700">
-              {registrationUrl}
-            </p>
-            {quota.is_full && (
-              <p className="text-xs font-medium text-red-600">
-                Kuota sudah penuh — form pendaftaran pada link ini otomatis ditutup.
-              </p>
-            )}
-          </div>
-
-          <div className="flex shrink-0 items-center gap-2">
-            <RegistrationLink token={mc.link_token} compact />
-            <a
-              href={`https://wa.me/?text=${encodeURIComponent(shareText)}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[#0d5c4d] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#09483c]"
-            >
-              <MessageSquare className="h-3.5 w-3.5" />
-              Bagikan via WhatsApp
-            </a>
-          </div>
-        </div>
-      </div>
 
       {/* Daftar anggota */}
       <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-5">
@@ -335,14 +314,14 @@ function McDashboardContent() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <div className="relative">
+            <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
-                type="text"
+                type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search..."
-                className="w-64 max-w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-800 outline-none focus:border-[#0d5c4d]"
+                placeholder="Cari nama, jurusan, angkatan..."
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-800 outline-none focus:border-[#0d5c4d]"
               />
             </div>
 
@@ -350,7 +329,7 @@ function McDashboardContent() {
               type="button"
               onClick={reload}
               disabled={refreshing}
-              className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-700 hover:bg-slate-50 disabled:opacity-50"
               aria-label="Muat ulang"
             >
               <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
@@ -359,9 +338,7 @@ function McDashboardContent() {
             <button
               type="button"
               onClick={openAddForm}
-              disabled={quota.is_full}
-              title={quota.is_full ? 'Kuota anggota sudah penuh' : undefined}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0d5c4d] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#09483c] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+              className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-[#0d5c4d] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#09483c] active:scale-[0.98] sm:flex-none"
             >
               <UserPlus className="h-4 w-4" />
               Tambah Anggota
@@ -378,12 +355,85 @@ function McDashboardContent() {
             Tidak ditemukan anggota yang sesuai dengan pencarian.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px] text-left text-sm">
+          <>
+          {/* Kartu anggota untuk layar kecil */}
+          <ul className="space-y-3 md:hidden">
+            {filteredMembers.map((member) => (
+              <li key={member.id} className="rounded-2xl border border-slate-200 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-slate-900">{member.nama}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      {member.jurusan ?? 'Jurusan belum diisi'}
+                      {member.angkatan ? ` · Angkatan ${member.angkatan}` : ''}
+                    </p>
+                  </div>
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                      member.created_by === 'mc' ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'
+                    }`}
+                  >
+                    {member.created_by === 'mc' ? 'MC' : 'Via Link'}
+                  </span>
+                </div>
+
+                <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                  <div>
+                    <dt className="text-slate-400">No. WhatsApp</dt>
+                    <dd className="mt-0.5 font-medium text-slate-700">
+                      <a href={`https://wa.me/${member.no_hp.replace(/\D/g, '').replace(/^0/, '62')}`} target="_blank" rel="noreferrer" className="text-[#0d5c4d] underline-offset-2 hover:underline">
+                        {member.no_hp}
+                      </a>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-slate-400">Tanggal</dt>
+                    <dd className="mt-0.5 font-medium text-slate-700">{member.created_at}</dd>
+                  </div>
+                  <div className="col-span-2">
+                    <dt className="text-slate-400">NIK</dt>
+                    <dd className="mt-0.5 font-mono text-slate-700">{member.nik}</dd>
+                  </div>
+                  {member.masukan && (
+                    <div className="col-span-2">
+                      <dt className="text-slate-400">Kritik & Masukan</dt>
+                      <dd className="mt-0.5 whitespace-pre-line italic text-slate-600">“{member.masukan}”</dd>
+                    </div>
+                  )}
+                </dl>
+
+                <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => openEditForm(member)}
+                    className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 active:bg-slate-50"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDeleteError('');
+                      setDeletingMember(member);
+                    }}
+                    className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-red-100 text-xs font-semibold text-red-600 active:bg-red-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Hapus
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[900px] text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-100 text-xs text-slate-400">
                   <th className="pb-3 pl-2 font-medium">No.</th>
                   <th className="pb-3 font-medium">Nama Anggota</th>
+                  <th className="pb-3 font-medium">Jurusan / Angkatan</th>
                   <th className="pb-3 font-medium">Tanggal</th>
                   <th className="pb-3 font-medium">NIK</th>
                   <th className="pb-3 font-medium">No. WhatsApp</th>
@@ -396,7 +446,23 @@ function McDashboardContent() {
                 {filteredMembers.map((member, index) => (
                   <tr key={member.id} className="transition hover:bg-slate-50/80">
                     <td className="py-4 pl-2 text-slate-500">{index + 1}</td>
-                    <td className="py-4 font-semibold text-slate-800">{member.nama}</td>
+                    <td className="py-4">
+                      <div className="font-semibold text-slate-800">{member.nama}</div>
+                      {member.masukan && (
+                        <div
+                          className="mt-0.5 max-w-xs truncate text-xs italic text-slate-400"
+                          title={member.masukan}
+                        >
+                          “{member.masukan}”
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-4 text-slate-600">
+                      {member.jurusan ?? '-'}
+                      {member.angkatan && (
+                        <span className="ml-1 text-xs text-slate-400">’{String(member.angkatan).slice(-2)}</span>
+                      )}
+                    </td>
                     <td className="py-4 text-slate-600">{member.created_at}</td>
                     <td className="py-4 font-mono text-xs text-slate-600">{member.nik}</td>
                     <td className="py-4 text-slate-600">{member.no_hp}</td>
@@ -435,18 +501,19 @@ function McDashboardContent() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 
       {/* Modal tambah / edit anggota */}
       {showForm && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-0 sm:items-center sm:p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget && !saving) setShowForm(false);
           }}
         >
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+          <div className="max-h-[92dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-t-3xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:p-6">
             <div className="mb-5 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-slate-900">
@@ -455,7 +522,7 @@ function McDashboardContent() {
                 <p className="mt-1 text-xs text-slate-500">
                   {editingMember
                     ? 'Perbarui data diri anggota.'
-                    : `Sisa kuota: ${quota.remaining} dari ${quota.max}.`}
+                    : 'Tambahkan anggota baru ke kelompok Anda.'}
                 </p>
               </div>
               <button
@@ -518,6 +585,55 @@ function McDashboardContent() {
                 />
               </div>
 
+              <div className="grid grid-cols-[1fr_7rem] gap-3">
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-slate-700">Jurusan</label>
+                  <input
+                    maxLength={100}
+                    value={form.jurusan}
+                    onChange={(e) => setForm({ ...form, jurusan: e.target.value })}
+                    placeholder="Teknik Informatika"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#0d5c4d]"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-slate-700">Angkatan</label>
+                  <input
+                    inputMode="numeric"
+                    maxLength={4}
+                    pattern="(19[5-9][0-9]|20[0-9]{2})"
+                    title="Tahun masuk, misal 2015"
+                    value={form.angkatan}
+                    onChange={(e) => setForm({ ...form, angkatan: e.target.value.replace(/\D/g, '') })}
+                    placeholder="2015"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 font-mono text-sm outline-none focus:border-[#0d5c4d]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-slate-700">Domisili (Kota)</label>
+                  <input
+                    maxLength={100}
+                    value={form.domisili}
+                    onChange={(e) => setForm({ ...form, domisili: e.target.value })}
+                    placeholder="Bandung"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#0d5c4d]"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold text-slate-700">Pekerjaan / Instansi</label>
+                  <input
+                    maxLength={100}
+                    value={form.pekerjaan}
+                    onChange={(e) => setForm({ ...form, pekerjaan: e.target.value })}
+                    placeholder="Wiraswasta"
+                    className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-[#0d5c4d]"
+                  />
+                </div>
+              </div>
+
               {formError && (
                 <div className="flex items-start gap-2 rounded-xl bg-red-50 p-3 text-xs text-red-700">
                   <AlertCircle className="h-4 w-4 shrink-0" />
@@ -555,12 +671,12 @@ function McDashboardContent() {
       {/* Modal konfirmasi hapus */}
       {deletingMember && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-0 sm:items-center sm:p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget && !deleting) setDeletingMember(null);
           }}
         >
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+          <div className="max-h-[92dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:p-6">
             <div className="mb-4 flex items-start gap-3">
               <div className="rounded-xl bg-red-50 p-2.5">
                 <Trash2 className="h-5 w-5 text-red-600" />
@@ -569,8 +685,8 @@ function McDashboardContent() {
                 <h2 className="text-lg font-bold text-slate-900">Hapus Anggota?</h2>
                 <p className="mt-1 text-sm text-slate-600">
                   <span className="font-semibold">{deletingMember.nama}</span>{' '}
-                  akan dikeluarkan dari kelompok Anda dan slot kuotanya kembali
-                  tersedia. Tindakan ini tidak dapat dibatalkan.
+                  akan dikeluarkan dari kelompok Anda. Tindakan ini tidak dapat
+                  dibatalkan.
                 </p>
               </div>
             </div>

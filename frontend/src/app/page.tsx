@@ -132,7 +132,7 @@ const DEMO_ACCOUNTS: DemoAccount[] = [
   {
     role: 'mc',
     identifier: '081234567801',
-    badge: 'MC Lapangan (7/10)',
+    badge: 'MC Lapangan (7 anggota)',
     name: 'Ridwan Kamil (Cilandak)',
     cta: 'Masuk Kelompok MC',
     card: 'border-purple-200 bg-purple-50/40 hover:bg-purple-50',

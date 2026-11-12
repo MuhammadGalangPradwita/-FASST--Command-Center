@@ -22,6 +22,11 @@ type Anggota = {
   nama: string;
   nik: string;
   no_hp: string;
+  jurusan: string | null;
+  angkatan: number | null;
+  domisili: string | null;
+  pekerjaan: string | null;
+  masukan: string | null;
   created_by: 'self' | 'mc';
   created_at: string;
   mc?: {
@@ -48,7 +53,6 @@ type Summary = {
   total: number;
   via_link: number;
   by_mc: number;
-  quota_max?: number;
 };
 
 const SUBTITLES: Record<Role, string> = {
@@ -180,29 +184,29 @@ function AnggotaList() {
 
         <div className="flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
           <form onSubmit={handleSearch} className="flex flex-1 items-center gap-2">
-            <div className="relative max-w-md flex-1">
+            <div className="relative min-w-0 max-w-md flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
-                type="text"
+                type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={
                   role === 'mc'
-                    ? 'Cari nama, NIK, atau nomor WA...'
-                    : 'Cari nama, NIK, nomor WA, atau MC...'
+                    ? 'Cari nama, NIK, WA, jurusan, angkatan...'
+                    : 'Cari nama, NIK, WA, jurusan, angkatan, atau MC...'
                 }
                 className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-800 outline-none focus:border-[#0d5c4d]"
               />
             </div>
             <button
               type="submit"
-              className="rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
+              className="min-h-11 shrink-0 rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200"
             >
               Cari
             </button>
           </form>
 
-          <div className="flex gap-1 rounded-xl bg-slate-100 p-1">
+          <div className="grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1 sm:flex">
             {SOURCE_FILTERS.map((filter) => (
               <button
                 key={filter.value}
@@ -211,7 +215,7 @@ function AnggotaList() {
                   setPage(1);
                   setSource(filter.value);
                 }}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                className={`min-h-9 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                   source === filter.value
                     ? 'bg-white text-slate-900 shadow-2xs'
                     : 'text-slate-500 hover:text-slate-800'
@@ -244,14 +248,75 @@ function AnggotaList() {
               : 'Tidak ditemukan anggota yang sesuai dengan pencarian.'}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px] text-left text-sm">
+          <>
+          {/* Kartu anggota untuk layar kecil */}
+          <ul className="space-y-3 md:hidden">
+            {anggotas.map((anggota) => (
+              <li key={anggota.id} className="rounded-2xl border border-slate-200 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-slate-900">{anggota.nama}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">
+                      {anggota.jurusan ?? 'Jurusan belum diisi'}
+                      {anggota.angkatan ? ` · Angkatan ${anggota.angkatan}` : ''}
+                    </p>
+                  </div>
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                      anggota.created_by === 'mc' ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'
+                    }`}
+                  >
+                    {anggota.created_by === 'mc' ? 'MC' : 'Via Link'}
+                  </span>
+                </div>
+
+                <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                  <div>
+                    <dt className="text-slate-400">No. WhatsApp</dt>
+                    <dd className="mt-0.5 font-medium text-slate-700">{anggota.no_hp || '-'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-slate-400">Terdaftar</dt>
+                    <dd className="mt-0.5 font-medium text-slate-700">{formatDate(anggota.created_at)}</dd>
+                  </div>
+                  {(anggota.pekerjaan || anggota.domisili) && (
+                    <div className="col-span-2">
+                      <dt className="text-slate-400">Pekerjaan · Domisili</dt>
+                      <dd className="mt-0.5 font-medium text-slate-700">
+                        {[anggota.pekerjaan, anggota.domisili].filter(Boolean).join(' · ')}
+                      </dd>
+                    </div>
+                  )}
+                  {showMcColumn && (
+                    <div className="col-span-2">
+                      <dt className="text-slate-400">MC{showWilayahColumn ? ' / Wilayah' : ''}</dt>
+                      <dd className="mt-0.5 font-medium text-slate-700">
+                        {anggota.mc?.nama ?? '-'}
+                        {showWilayahColumn && anggota.mc?.pic?.wilayah ? ` · ${anggota.mc.pic.wilayah}` : ''}
+                      </dd>
+                    </div>
+                  )}
+                  {anggota.masukan && (
+                    <div className="col-span-2">
+                      <dt className="text-slate-400">Kritik & Masukan</dt>
+                      <dd className="mt-0.5 whitespace-pre-line italic text-slate-600">“{anggota.masukan}”</dd>
+                    </div>
+                  )}
+                </dl>
+              </li>
+            ))}
+          </ul>
+
+          <div className="hidden overflow-x-auto md:block">
+            <table className="w-full min-w-[1000px] text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-100 text-xs text-slate-400">
                   <th className="pb-3 pl-2 font-medium">No.</th>
                   <th className="pb-3 font-medium">Nama Anggota</th>
+                  <th className="pb-3 font-medium">Jurusan / Angkatan</th>
                   <th className="pb-3 font-medium">NIK</th>
                   <th className="pb-3 font-medium">No. WhatsApp</th>
+                  <th className="pb-3 font-medium">Kritik & Masukan</th>
                   {showMcColumn && <th className="pb-3 font-medium">MC</th>}
                   {showWilayahColumn && <th className="pb-3 font-medium">PIC / Wilayah</th>}
                   <th className="pb-3 pr-2 font-medium">Didaftarkan</th>
@@ -263,11 +328,35 @@ function AnggotaList() {
                   <tr key={anggota.id} className="transition hover:bg-slate-50/80">
                     <td className="py-4 pl-2 text-slate-500">{(meta?.from ?? 1) + index}</td>
 
-                    <td className="py-4 font-semibold text-slate-800">{anggota.nama}</td>
+                    <td className="py-4">
+                      <div className="font-semibold text-slate-800">{anggota.nama}</div>
+                      {(anggota.pekerjaan || anggota.domisili) && (
+                        <div className="mt-0.5 text-xs text-slate-400">
+                          {[anggota.pekerjaan, anggota.domisili].filter(Boolean).join(' · ')}
+                        </div>
+                      )}
+                    </td>
+
+                    <td className="py-4 text-slate-600">
+                      {anggota.jurusan ?? '-'}
+                      {anggota.angkatan && (
+                        <div className="text-xs text-slate-400">Angkatan {anggota.angkatan}</div>
+                      )}
+                    </td>
 
                     <td className="py-4 font-mono text-xs text-slate-600">{anggota.nik}</td>
 
                     <td className="py-4 text-slate-600">{anggota.no_hp || '-'}</td>
+
+                    <td className="max-w-xs py-4 text-xs text-slate-600">
+                      {anggota.masukan ? (
+                        <p className="line-clamp-3 whitespace-pre-line" title={anggota.masukan}>
+                          {anggota.masukan}
+                        </p>
+                      ) : (
+                        <span className="text-slate-300">-</span>
+                      )}
+                    </td>
 
                     {showMcColumn && (
                       <td className="py-4 text-slate-700">{anggota.mc?.nama ?? '-'}</td>
@@ -302,20 +391,21 @@ function AnggotaList() {
               </tbody>
             </table>
           </div>
+          </>
         )}
 
         {meta && meta.last_page > 1 && (
-          <div className="flex items-center justify-between border-t border-slate-100 pt-4">
-            <p className="text-xs text-slate-500">
+          <div className="flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-center text-xs text-slate-500 sm:text-left">
               Halaman {meta.current_page} dari {meta.last_page}
             </p>
 
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:flex">
               <button
                 type="button"
                 disabled={meta.current_page <= 1 || refreshing}
                 onClick={() => setPage((p) => p - 1)}
-                className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                className="inline-flex min-h-11 items-center justify-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
               >
                 <ChevronLeft className="h-4 w-4" />
                 Sebelumnya
@@ -324,7 +414,7 @@ function AnggotaList() {
                 type="button"
                 disabled={meta.current_page >= meta.last_page || refreshing}
                 onClick={() => setPage((p) => p + 1)}
-                className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                className="inline-flex min-h-11 items-center justify-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
               >
                 Berikutnya
                 <ChevronRight className="h-4 w-4" />

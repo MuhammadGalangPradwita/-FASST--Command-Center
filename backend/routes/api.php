@@ -38,6 +38,7 @@ Route::prefix('mc')->middleware('auth:sanctum')->group(function () {
 // Dashboard PIC (Level 1 Admin: Manage MC & Anggota Wilayah)
 Route::prefix('pic')->middleware('auth:sanctum')->group(function () {
     Route::get('/{id}/dashboard', [PicController::class, 'dashboard']);
+    Route::put('/{id}/wa-group', [PicController::class, 'updateWaGroup']);
     Route::post('/{id}/mcs', [PicController::class, 'storeMc']);
     Route::put('/{id}/mcs/{mcId}', [PicController::class, 'updateMc']);
     Route::post('/{id}/mcs/{mcId}/reset-password', [PicController::class, 'resetMcPassword']);

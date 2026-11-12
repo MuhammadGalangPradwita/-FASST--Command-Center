@@ -23,6 +23,7 @@ import PageHeader from '@/components/PageHeader';
 import RegistrationLink from '@/components/RegistrationLink';
 import McMembersModal from '@/components/McMembersModal';
 import ResetPasswordDialog, { ResetRequestBadge } from '@/components/ResetPasswordDialog';
+import WaGroupLinkCard from '@/components/WaGroupLinkCard';
 
 type PicMc = {
   id: number;
@@ -30,8 +31,6 @@ type PicMc = {
   no_hp: string;
   link_token: string;
   quota_count: number;
-  quota_max: number;
-  is_full: boolean;
   password_reset_requested_at?: string | null;
 };
 
@@ -41,12 +40,12 @@ type PicDashboard = {
     nama: string;
     wilayah: string;
     no_hp: string;
+    wa_group_link: string | null;
   };
   summary: {
     total_mcs: number;
     total_registered: number;
-    target_voters: number;
-    target_achievement_pct: number;
+    avg_per_mc: number;
   };
   mcs: PicMc[];
 };
@@ -194,13 +193,13 @@ function PicDashboardContent() {
     { label: 'MC Dikelola', value: summary.total_mcs, icon: Users, tone: 'bg-blue-50 text-blue-700' },
     {
       label: 'Anggota Terdaftar',
-      value: `${summary.total_registered}/${summary.target_voters}`,
+      value: summary.total_registered,
       icon: UserCheck,
       tone: 'bg-emerald-50 text-emerald-700',
     },
     {
-      label: 'Capaian Target',
-      value: `${summary.target_achievement_pct}%`,
+      label: 'Rata-rata per MC',
+      value: summary.avg_per_mc,
       icon: Target,
       tone: 'bg-amber-50 text-amber-700',
     },
@@ -236,6 +235,14 @@ function PicDashboardContent() {
         </div>
       )}
 
+      <WaGroupLinkCard
+        picId={pic.id}
+        link={pic.wa_group_link}
+        onSaved={(link) =>
+          setData((prev) => (prev ? { ...prev, pic: { ...prev.pic, wa_group_link: link } } : prev))
+        }
+      />
+
       <div className="grid gap-4 sm:grid-cols-3">
         {stats.map((stat) => {
           const Icon = stat.icon;
@@ -266,14 +273,14 @@ function PicDashboardContent() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <div className="relative">
+            <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
-                type="text"
+                type="search"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Cari nama MC atau nomor WA..."
-                className="w-64 max-w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-800 outline-none focus:border-[#0d5c4d]"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-800 outline-none focus:border-[#0d5c4d]"
               />
             </div>
 
@@ -284,7 +291,7 @@ function PicDashboardContent() {
                 setReloadKey((k) => k + 1);
               }}
               disabled={refreshing}
-              className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-700 hover:bg-slate-50 disabled:opacity-50"
               aria-label="Muat ulang"
             >
               <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
@@ -293,7 +300,7 @@ function PicDashboardContent() {
             <button
               type="button"
               onClick={openAddMc}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#0d5c4d] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#09483c]"
+              className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-[#0d5c4d] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#09483c] active:scale-[0.98] sm:flex-none"
             >
               <Plus className="h-4 w-4" />
               Tambah MC
@@ -310,7 +317,52 @@ function PicDashboardContent() {
             Tidak ditemukan MC yang sesuai dengan pencarian.
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Kartu MC untuk layar kecil */}
+          <ul className="space-y-3 md:hidden">
+            {filteredMcs.map((mc) => (
+              <li key={mc.id} className="rounded-2xl border border-slate-200 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-900">
+                      {mc.nama}
+                      <ResetRequestBadge requestedAt={mc.password_reset_requested_at} />
+                    </p>
+                    <p className="mt-0.5 text-xs text-slate-500">{mc.no_hp || '-'}</p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                    {mc.quota_count} anggota
+                  </span>
+                </div>
+
+                <div className="mt-3 flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2">
+                  <span className="text-xs text-slate-500">Link pendaftaran</span>
+                  <RegistrationLink token={mc.link_token} compact />
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setMemberMc(mc)}
+                    className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 active:bg-emerald-50"
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    Lihat Anggota
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setResettingMc(mc)}
+                    className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 active:bg-amber-50"
+                  >
+                    <KeyRound className="h-3.5 w-3.5" />
+                    Reset Password
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[760px] text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-100 text-xs text-slate-400">
@@ -318,7 +370,7 @@ function PicDashboardContent() {
                   <th className="pb-3 font-medium">Nama MC</th>
                   <th className="pb-3 font-medium">No. WhatsApp</th>
                   <th className="pb-3 font-medium">Link Pendaftaran</th>
-                  <th className="pb-3 font-medium">Kuota Anggota</th>
+                  <th className="pb-3 font-medium">Jumlah Anggota</th>
                   <th className="pb-3 pr-2 text-right font-medium">Aksi</th>
                 </tr>
               </thead>
@@ -336,12 +388,8 @@ function PicDashboardContent() {
                       <RegistrationLink token={mc.link_token} compact />
                     </td>
                     <td className="py-4">
-                      <span
-                        className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                          mc.is_full ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'
-                        }`}
-                      >
-                        {mc.quota_count}/{mc.quota_max}
+                      <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                        {mc.quota_count} anggota
                       </span>
                     </td>
                     <td className="py-4 pr-2 text-right">
@@ -370,6 +418,7 @@ function PicDashboardContent() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 
@@ -398,12 +447,12 @@ function PicDashboardContent() {
 
       {showAddMc && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-0 sm:items-center sm:p-4"
           onClick={(e) => {
             if (e.target === e.currentTarget && !savingMc) setShowAddMc(false);
           }}
         >
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+          <div className="max-h-[92dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-t-3xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:p-6">
             <div className="mb-5 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-slate-900">Tambah MC</h2>

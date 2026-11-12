@@ -13,7 +13,7 @@ interface AppLayoutProps {
 }
 
 export default function AppLayout({ children }: AppLayoutProps) {
-  const pathname = usePathname();
+  const pathname = usePathname().replace(/\/$/, '') || '/';
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
@@ -42,7 +42,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const hideNavigation =
     pathname === '/' ||
     pathname === '/login' ||
-    pathname.startsWith('/daftar/');
+    pathname === '/daftar';
 
   if (hideNavigation) {
     // body memakai overflow-hidden, jadi halaman ini perlu area scroll sendiri
@@ -68,7 +68,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             onClick={() => setMobileMenuOpen(false)}
             aria-hidden
           />
-          <div className="relative h-full shadow-xl">
+          <div className="relative h-full max-w-[85vw] shadow-xl drawer-in">
             <Sidebar
               onNavigate={() => setMobileMenuOpen(false)}
               onChangePassword={() => setChangePasswordOpen(true)}

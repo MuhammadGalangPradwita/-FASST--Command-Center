@@ -59,7 +59,7 @@ class McController extends Controller
     }
 
     /**
-     * Get MC dashboard data with quota progress and members
+     * Get MC dashboard data with member count and members
      */
     public function dashboard(Request $request, int $id)
     {
@@ -77,7 +77,6 @@ class McController extends Controller
         }
 
         $members = $mc->anggotas;
-        $totalMembers = $members->count();
 
         return response()->json([
             'success' => true,
@@ -89,20 +88,21 @@ class McController extends Controller
                     'link_token' => $mc->link_token,
                     'pic_nama' => $mc->pic ? $mc->pic->nama : null,
                     'wilayah' => $mc->pic ? $mc->pic->wilayah : null,
+                    // Pendaftar baru diarahkan ke grup WA PIC; MC perlu tahu bila belum diatur
+                    'wa_group_ready' => filled($mc->pic?->wa_group_link),
                 ],
-                'quota' => [
-                    'current' => $totalMembers,
-                    'max' => Mc::MAX_QUOTA,
-                    'remaining' => max(0, Mc::MAX_QUOTA - $totalMembers),
-                    'percentage' => round(($totalMembers / Mc::MAX_QUOTA) * 100, 1),
-                    'is_full' => $totalMembers >= Mc::MAX_QUOTA,
-                ],
+                'total_members' => $members->count(),
                 'members' => $members->map(function ($m) {
                     return [
                         'id' => $m->id,
                         'nama' => $m->nama,
                         'nik' => $m->nik,
                         'no_hp' => $m->no_hp,
+                        'jurusan' => $m->jurusan,
+                        'angkatan' => $m->angkatan,
+                        'domisili' => $m->domisili,
+                        'pekerjaan' => $m->pekerjaan,
+                        'masukan' => $m->masukan,
                         'created_by' => $m->created_by,
                         'created_at' => $m->created_at->format('Y-m-d H:i'),
                     ];
@@ -112,7 +112,7 @@ class McController extends Controller
     }
 
     /**
-     * Add member manually via MC dashboard (Strict max 10 check)
+     * Add member manually via MC dashboard
      */
     public function addMember(Request $request, int $id)
     {
@@ -122,21 +122,16 @@ class McController extends Controller
 
         $mc = Mc::findOrFail($id);
 
-        if ($mc->anggotas()->count() >= Mc::MAX_QUOTA) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal menambah anggota: Batas kuota 10 anggota telah penuh.',
-            ], 422);
-        }
-
         $validated = $request->validate([
             'nama' => 'required|string|max:100',
             'nik' => 'required|regex:/^[0-9]{16}$/|unique:anggotas,nik',
             'no_hp' => 'required|string|max:20|unique:anggotas,no_hp',
+            ...Anggota::alumniRules(requireCore: false),
         ], [
             'nik.regex' => 'NIK harus tepat 16 digit angka.',
             'nik.unique' => 'NIK ini sudah terdaftar dalam sistem.',
             'no_hp.unique' => 'Nomor WhatsApp ini sudah terdaftar dalam sistem.',
+            ...Anggota::ALUMNI_MESSAGES,
         ]);
 
         $validated['mc_id'] = $mc->id;
@@ -169,10 +164,12 @@ class McController extends Controller
             'nama' => 'required|string|max:100',
             'nik' => "required|regex:/^[0-9]{16}$/|unique:anggotas,nik,{$memberId}",
             'no_hp' => "required|string|max:20|unique:anggotas,no_hp,{$memberId}",
+            ...Anggota::alumniRules(requireCore: false),
         ], [
             'nik.regex' => 'NIK harus tepat 16 digit angka.',
             'nik.unique' => 'NIK ini sudah terdaftar dalam sistem.',
             'no_hp.unique' => 'Nomor WhatsApp ini sudah terdaftar dalam sistem.',
+            ...Anggota::ALUMNI_MESSAGES,
         ]);
 
         $anggota->update($validated);

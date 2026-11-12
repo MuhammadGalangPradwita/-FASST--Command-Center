@@ -1,0 +1,5 @@
+.DS_Store
+
+# Hasil build deploy Hostinger (dibuat ulang dari source)
+deploy/hostinger/.staging/
+deploy/hostinger/*.zip

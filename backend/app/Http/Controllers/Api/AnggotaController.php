@@ -40,10 +40,6 @@ class AnggotaController extends Controller
             'by_mc' => (clone $scoped)->where('created_by', 'mc')->count(),
         ];
 
-        if ($user instanceof Mc) {
-            $summary['quota_max'] = Mc::MAX_QUOTA;
-        }
-
         $query = (clone $scoped)->with(['mc:id,pic_id,nama', 'mc.pic:id,nama,wilayah']);
 
         if ($request->filled('search')) {
@@ -52,6 +48,9 @@ class AnggotaController extends Controller
                 $q->where('nama', 'like', "%{$search}%")
                     ->orWhere('nik', 'like', "%{$search}%")
                     ->orWhere('no_hp', 'like', "%{$search}%")
+                    ->orWhere('jurusan', 'like', "%{$search}%")
+                    ->orWhere('angkatan', 'like', "%{$search}%")
+                    ->orWhere('domisili', 'like', "%{$search}%")
                     ->orWhereHas('mc', fn ($mc) => $mc->where('nama', 'like', "%{$search}%"));
             });
         }

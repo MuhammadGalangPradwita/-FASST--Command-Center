@@ -17,8 +17,31 @@ class Pic extends Authenticatable
         'nama',
         'no_hp',
         'wilayah',
+        'wa_group_link',
         'password',
     ];
+
+    /**
+     * Format link undangan grup WhatsApp, mis. https://chat.whatsapp.com/AbC123xyz
+     * (boleh diikuti query seperti ?mode=ems_copy_t dari tombol "Salin link").
+     */
+    public const WA_GROUP_PATTERN = '/^https:\/\/chat\.whatsapp\.com\/(invite\/)?[A-Za-z0-9]{10,64}(\?[^\s]*)?$/';
+
+    /**
+     * Rapikan link yang ditempel PIC: buang spasi, lengkapi "https://" bila tidak ada.
+     */
+    public static function normalizeWaGroupLink(?string $link): ?string
+    {
+        $link = trim((string) $link);
+
+        if ($link === '') {
+            return null;
+        }
+
+        $link = preg_replace('/^(https?:\/\/)?(www\.)?/i', 'https://', $link);
+
+        return $link;
+    }
 
     protected $hidden = [
         'password',

@@ -57,12 +57,12 @@ export default function ResetPasswordDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/40 p-4"
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-slate-950/40 p-0 sm:items-center sm:p-4"
       onClick={(e) => {
         if (!loading && e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+      <div className="max-h-[92dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:p-6">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <div className="rounded-xl bg-amber-50 p-2.5 text-amber-600">

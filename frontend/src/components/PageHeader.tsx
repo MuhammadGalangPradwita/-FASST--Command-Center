@@ -20,7 +20,7 @@ interface PageHeaderProps {
 }
 
 const primaryClass =
-  'inline-flex items-center justify-center gap-2 rounded-xl bg-[#0d5c4d] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#09483c] active:scale-[0.98]';
+  'inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-[#0d5c4d] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#09483c] active:scale-[0.98] sm:flex-none';
 
 export default function PageHeader({
   icon: Icon,
@@ -55,10 +55,11 @@ export default function PageHeader({
               type="button"
               onClick={onRefresh}
               disabled={refreshing}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+              aria-label="Refresh"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50 sm:px-4"
             >
               <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-              Refresh
+              <span className={primaryAction ? 'hidden sm:inline' : ''}>Refresh</span>
             </button>
           )}
 

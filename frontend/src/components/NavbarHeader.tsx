@@ -12,12 +12,12 @@ interface NavbarHeaderProps {
  */
 export default function NavbarHeader({ onMenuClick }: NavbarHeaderProps) {
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200/80 bg-white px-4 md:hidden">
+    <header className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200/80 bg-white/95 px-4 backdrop-blur md:hidden">
       <SidebarBrand />
       <button
         type="button"
         onClick={onMenuClick}
-        className="rounded-xl border border-slate-200 p-2 text-slate-600 hover:bg-slate-50"
+        className="flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-50 active:scale-95"
         aria-label="Buka menu"
       >
         <Menu className="h-5 w-5" />

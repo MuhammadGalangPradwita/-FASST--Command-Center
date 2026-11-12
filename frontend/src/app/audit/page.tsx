@@ -157,10 +157,10 @@ export default function AuditTrailPage() {
 
         <div className="flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
           <form onSubmit={handleSearch} className="flex flex-1 items-center gap-2">
-            <div className="relative max-w-md flex-1">
+            <div className="relative min-w-0 max-w-md flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
-                type="text"
+                type="search"
                 placeholder="Cari deskripsi, aksi, atau IP address..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -176,14 +176,14 @@ export default function AuditTrailPage() {
           </form>
 
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-slate-400" />
+            <Filter className="h-4 w-4 shrink-0 text-slate-400" />
             <select
               value={userTypeFilter}
               onChange={(e) => {
                 setPage(1);
                 setUserTypeFilter(e.target.value);
               }}
-              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-[#0d5c4d]"
+              className="min-h-11 flex-1 rounded-xl border sm:flex-none border-slate-200 bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 outline-none focus:border-[#0d5c4d]"
             >
               <option value="">Semua Peran</option>
               <option value="jenderal">Jenderal</option>
@@ -212,7 +212,38 @@ export default function AuditTrailPage() {
             Tidak ada catatan yang sesuai dengan filter.
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Linimasa log untuk layar kecil */}
+          <ul className="space-y-3 md:hidden">
+            {logs.map((log) => {
+              const { date, time } = formatDate(log.created_at);
+
+              return (
+                <li key={log.id} className="rounded-2xl border border-slate-200 p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span
+                      className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${
+                        ROLE_STYLES[log.user_type] ?? 'bg-slate-100 text-slate-700'
+                      }`}
+                    >
+                      {log.user_type}
+                    </span>
+                    <span
+                      className={`inline-block max-w-full truncate rounded-lg border px-2 py-0.5 font-mono text-[10px] font-semibold ${getActionStyle(log.action)}`}
+                    >
+                      {log.action}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-sm leading-relaxed text-slate-700">{log.description || '-'}</p>
+                  <p className="mt-2 text-[11px] text-slate-400">
+                    {date} · {time}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[900px] text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-100 text-xs text-slate-400">
@@ -270,20 +301,21 @@ export default function AuditTrailPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
 
         {meta && meta.last_page > 1 && (
-          <div className="flex items-center justify-between border-t border-slate-100 pt-4">
-            <p className="text-xs text-slate-500">
+          <div className="flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-center text-xs text-slate-500 sm:text-left">
               Halaman {meta.current_page} dari {meta.last_page}
             </p>
 
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-2 sm:flex">
               <button
                 type="button"
                 disabled={meta.current_page <= 1 || refreshing}
                 onClick={() => setPage((p) => p - 1)}
-                className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                className="inline-flex min-h-11 items-center justify-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
               >
                 <ChevronLeft className="h-4 w-4" />
                 Sebelumnya
@@ -292,7 +324,7 @@ export default function AuditTrailPage() {
                 type="button"
                 disabled={meta.current_page >= meta.last_page || refreshing}
                 onClick={() => setPage((p) => p + 1)}
-                className="inline-flex items-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                className="inline-flex min-h-11 items-center justify-center gap-1 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
               >
                 Berikutnya
                 <ChevronRight className="h-4 w-4" />

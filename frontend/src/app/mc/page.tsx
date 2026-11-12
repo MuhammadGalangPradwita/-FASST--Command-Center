@@ -28,7 +28,6 @@ type Mc = {
   link_token: string;
   password_reset_requested_at?: string | null;
   anggotas_count?: number;
-  quota_max?: number;
   pic?: {
     id: number;
     nama: string;
@@ -301,8 +300,8 @@ function McList() {
           title="MC Koordinator"
           subtitle={
             isPic
-              ? 'Daftar MC yang terdaftar di wilayah Anda beserta kuota anggotanya.'
-              : 'Kelola seluruh MC beserta PIC dan kuota anggotanya.'
+              ? 'Daftar MC yang terdaftar di wilayah Anda beserta jumlah anggotanya.'
+              : 'Kelola seluruh MC beserta PIC dan jumlah anggotanya.'
           }
           refreshing={refreshing}
           onRefresh={() => void loadMcs(true)}
@@ -351,7 +350,76 @@ function McList() {
                 : 'Tidak ditemukan MC yang sesuai dengan pencarian.'}
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            {/* Kartu MC untuk layar kecil */}
+            <ul className="space-y-3 md:hidden">
+              {filteredMcs.map((mc) => (
+                <li key={mc.id} className="rounded-2xl border border-slate-200 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-slate-900">
+                        {mc.nama}
+                        <ResetRequestBadge requestedAt={mc.password_reset_requested_at} />
+                      </p>
+                      <p className="mt-0.5 text-xs text-slate-500">
+                        {mc.no_hp || '-'}
+                        {!isPic && mc.pic?.wilayah ? ` · ${mc.pic.wilayah}` : ''}
+                      </p>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                      {mc.anggotas_count ?? 0} anggota
+                    </span>
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2">
+                    <span className="text-xs text-slate-500">Link pendaftaran</span>
+                    <RegistrationLink token={mc.link_token} compact />
+                  </div>
+
+                  <div className={`mt-3 grid gap-2 ${isPic ? 'grid-cols-3' : 'grid-cols-4'}`}>
+                    <button
+                      type="button"
+                      onClick={() => void openDetail(mc)}
+                      className="inline-flex min-h-10 flex-col items-center justify-center gap-0.5 rounded-xl border border-slate-200 text-[11px] font-semibold text-slate-700 active:bg-emerald-50"
+                    >
+                      <Eye className="h-4 w-4" />
+                      Anggota
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openEditModal(mc)}
+                      className="inline-flex min-h-10 flex-col items-center justify-center gap-0.5 rounded-xl border border-slate-200 text-[11px] font-semibold text-slate-700 active:bg-blue-50"
+                    >
+                      <Pencil className="h-4 w-4" />
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setResettingMc(mc)}
+                      className="inline-flex min-h-10 flex-col items-center justify-center gap-0.5 rounded-xl border border-slate-200 text-[11px] font-semibold text-slate-700 active:bg-amber-50"
+                    >
+                      <KeyRound className="h-4 w-4" />
+                      Reset
+                    </button>
+                    {!isPic && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDeleteError('');
+                          setDeletingMc(mc);
+                        }}
+                        className="inline-flex min-h-10 flex-col items-center justify-center gap-0.5 rounded-xl border border-red-100 text-[11px] font-semibold text-red-600 active:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Hapus
+                      </button>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            <div className="hidden overflow-x-auto md:block">
               <table className="w-full min-w-[820px] text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-100 text-xs text-slate-400">
@@ -398,14 +466,8 @@ function McList() {
                       )}
 
                       <td className="py-4">
-                        <span
-                          className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                            (mc.anggotas_count ?? 0) >= (mc.quota_max ?? 10)
-                              ? 'bg-red-50 text-red-700'
-                              : 'bg-emerald-50 text-emerald-700'
-                          }`}
-                        >
-                          {mc.anggotas_count ?? 0}/{mc.quota_max ?? 10}
+                        <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                          {mc.anggotas_count ?? 0} anggota
                         </span>
                       </td>
 
@@ -459,19 +521,20 @@ function McList() {
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </div>
 
         {showModal && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4"
+            className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-0 sm:items-center sm:p-4"
             onClick={(e) => {
               if (e.target === e.currentTarget && !submitting) {
                 setShowModal(false);
               }
             }}
           >
-            <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+            <div className="max-h-[92dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-t-3xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:p-6">
               <div className="mb-5 flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">
@@ -605,12 +668,12 @@ function McList() {
 
         {detailMc && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4"
+            className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-0 sm:items-center sm:p-4"
             onClick={(e) => {
               if (e.target === e.currentTarget) setDetailMc(null);
             }}
           >
-            <div className="flex max-h-[90vh] w-full max-w-3xl flex-col rounded-2xl bg-white p-6 shadow-xl">
+            <div className="flex max-h-[92dvh] w-full max-w-3xl flex-col rounded-t-3xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:max-h-[90vh] sm:rounded-2xl sm:p-6">
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">
@@ -654,7 +717,7 @@ function McList() {
                 <div className="min-h-0 space-y-5 overflow-y-auto">
                   <div className="grid grid-cols-3 gap-3">
                     {[
-                      { label: 'Anggota', value: `${members.length}/${detailMc.quota_max ?? 10}` },
+                      { label: 'Anggota', value: members.length },
                       { label: 'Daftar via Link', value: members.filter((m) => m.created_by === 'self').length },
                       { label: 'Ditambahkan MC', value: members.filter((m) => m.created_by === 'mc').length },
                     ].map((stat) => (
@@ -747,14 +810,14 @@ function McList() {
 
         {deletingMc && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4"
+            className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-0 sm:items-center sm:p-4"
             onClick={(e) => {
               if (e.target === e.currentTarget && !deleting) {
                 setDeletingMc(null);
               }
             }}
           >
-            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="max-h-[92dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:p-6">
               <div className="mb-4 flex items-start gap-3">
                 <div className="rounded-xl bg-red-50 p-2.5">
                   <Trash2 className="h-5 w-5 text-red-600" />

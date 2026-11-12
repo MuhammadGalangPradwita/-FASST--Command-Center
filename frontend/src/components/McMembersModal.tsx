@@ -11,6 +11,9 @@ type Member = {
   nama: string;
   nik: string;
   no_hp: string;
+  jurusan: string | null;
+  angkatan: number | null;
+  masukan: string | null;
   created_by: 'self' | 'mc';
   created_at: string;
 };
@@ -24,10 +27,7 @@ type McDetail = {
     pic_nama: string | null;
     wilayah: string | null;
   };
-  quota: {
-    current: number;
-    max: number;
-  };
+  total_members: number;
   members: Member[];
 };
 
@@ -85,12 +85,12 @@ export default function McMembersModal({ mcId, mcNama, onClose }: McMembersModal
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/40 p-4"
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-slate-950/40 p-0 sm:items-center sm:p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="flex max-h-[90vh] w-full max-w-3xl flex-col rounded-2xl bg-white p-6 shadow-xl">
+      <div className="flex max-h-[92dvh] w-full max-w-3xl flex-col rounded-t-3xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:max-h-[90vh] sm:rounded-2xl sm:p-6">
         <div className="mb-5 flex items-start justify-between gap-4">
           <div className="min-w-0">
             <p className="text-xs font-medium text-slate-400">Detail Anggota MC</p>
@@ -133,7 +133,7 @@ export default function McMembersModal({ mcId, mcNama, onClose }: McMembersModal
           <div className="min-h-0 space-y-5 overflow-y-auto">
             <div className="grid grid-cols-3 gap-3">
               {[
-                { label: 'Anggota', value: `${detail.quota.current}/${detail.quota.max}` },
+                { label: 'Anggota', value: detail.total_members },
                 { label: 'Daftar via Link', value: members.filter((m) => m.created_by === 'self').length },
                 { label: 'Ditambahkan MC', value: members.filter((m) => m.created_by === 'mc').length },
               ].map((stat) => (
@@ -149,12 +149,40 @@ export default function McMembersModal({ mcId, mcNama, onClose }: McMembersModal
                 MC ini belum memiliki anggota.
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <>
+              <ul className="divide-y divide-slate-100 md:hidden">
+                {members.map((member) => (
+                  <li key={member.id} className="py-3 first:pt-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-slate-800">{member.nama}</p>
+                        <p className="mt-0.5 text-xs text-slate-500">
+                          {member.jurusan ?? '-'}
+                          {member.angkatan ? ` · ${member.angkatan}` : ''} · {member.no_hp}
+                        </p>
+                      </div>
+                      <span
+                        className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                          member.created_by === 'mc' ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'
+                        }`}
+                      >
+                        {member.created_by === 'mc' ? 'MC' : 'Via Link'}
+                      </span>
+                    </div>
+                    {member.masukan && (
+                      <p className="mt-1.5 whitespace-pre-line text-xs italic text-slate-500">“{member.masukan}”</p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+
+              <div className="hidden overflow-x-auto md:block">
                 <table className="w-full min-w-[600px] text-left text-sm">
                   <thead>
                     <tr className="border-b border-slate-100 text-xs text-slate-400">
                       <th className="pb-3 pl-2 font-medium">No.</th>
                       <th className="pb-3 font-medium">Nama Anggota</th>
+                      <th className="pb-3 font-medium">Jurusan / Angkatan</th>
                       <th className="pb-3 font-medium">NIK</th>
                       <th className="pb-3 font-medium">No. WhatsApp</th>
                       <th className="pb-3 font-medium">Didaftarkan</th>
@@ -165,7 +193,18 @@ export default function McMembersModal({ mcId, mcNama, onClose }: McMembersModal
                     {members.map((member, index) => (
                       <tr key={member.id}>
                         <td className="py-3 pl-2 text-slate-500">{index + 1}</td>
-                        <td className="py-3 font-semibold text-slate-800">{member.nama}</td>
+                        <td className="py-3">
+                          <div className="font-semibold text-slate-800">{member.nama}</div>
+                          {member.masukan && (
+                            <div className="mt-0.5 max-w-xs truncate text-xs italic text-slate-400" title={member.masukan}>
+                              “{member.masukan}”
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3 text-slate-600">
+                          {member.jurusan ?? '-'}
+                          {member.angkatan && <div className="text-xs text-slate-400">{member.angkatan}</div>}
+                        </td>
                         <td className="py-3 font-mono text-xs text-slate-600">{member.nik}</td>
                         <td className="py-3 text-slate-600">{member.no_hp}</td>
                         <td className="py-3">
@@ -185,6 +224,7 @@ export default function McMembersModal({ mcId, mcNama, onClose }: McMembersModal
                   </tbody>
                 </table>
               </div>
+              </>
             )}
           </div>
         )}

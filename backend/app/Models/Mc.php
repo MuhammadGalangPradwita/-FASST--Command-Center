@@ -32,11 +32,7 @@ class Mc extends Authenticatable
 
     protected $appends = [
         'quota_count',
-        'quota_max',
-        'is_quota_full',
     ];
-
-    public const MAX_QUOTA = 10;
 
     protected static function booted(): void
     {
@@ -70,15 +66,5 @@ class Mc extends Authenticatable
     public function getQuotaCountAttribute(): int
     {
         return $this->anggotas()->count();
-    }
-
-    public function getQuotaMaxAttribute(): int
-    {
-        return self::MAX_QUOTA;
-    }
-
-    public function getIsQuotaFullAttribute(): bool
-    {
-        return $this->quota_count >= self::MAX_QUOTA;
     }
 }

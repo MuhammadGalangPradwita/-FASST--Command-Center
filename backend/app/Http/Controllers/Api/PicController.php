@@ -56,20 +56,13 @@ class PicController extends Controller
         $allMembers = $mcs->flatMap->anggotas;
         $totalRegistered = $allMembers->count();
 
-        $targetVoters = $totalMcs * Mc::MAX_QUOTA;
-        $targetAchievementPct = $targetVoters > 0 ? round(($totalRegistered / $targetVoters) * 100, 1) : 0;
-
         $mcList = $mcs->map(function ($mc) {
-            $count = $mc->anggotas->count();
-
             return [
                 'id' => $mc->id,
                 'nama' => $mc->nama,
                 'no_hp' => $mc->no_hp,
                 'link_token' => $mc->link_token,
-                'quota_count' => $count,
-                'quota_max' => Mc::MAX_QUOTA,
-                'is_full' => $count >= Mc::MAX_QUOTA,
+                'quota_count' => $mc->anggotas->count(),
                 'password_reset_requested_at' => $mc->password_reset_requested_at?->toIso8601String(),
                 'anggotas' => $mc->anggotas->map(function ($a) {
                     return [
@@ -77,6 +70,8 @@ class PicController extends Controller
                         'nama' => $a->nama,
                         'nik' => $a->nik,
                         'no_hp' => $a->no_hp,
+                        'jurusan' => $a->jurusan,
+                        'angkatan' => $a->angkatan,
                     ];
                 }),
             ];
@@ -90,15 +85,58 @@ class PicController extends Controller
                     'nama' => $pic->nama,
                     'wilayah' => $pic->wilayah,
                     'no_hp' => $pic->no_hp,
+                    'wa_group_link' => $pic->wa_group_link,
                 ],
                 'summary' => [
                     'total_mcs' => $totalMcs,
                     'total_registered' => $totalRegistered,
-                    'target_voters' => $targetVoters,
-                    'target_achievement_pct' => $targetAchievementPct,
+                    'avg_per_mc' => $totalMcs > 0 ? round($totalRegistered / $totalMcs, 1) : 0,
                 ],
                 'mcs' => $mcList,
             ],
+        ]);
+    }
+
+    /**
+     * Simpan link grup WhatsApp PIC. Dipakai sebagai tujuan setelah anggota
+     * mendaftar lewat link MC mana pun di wilayah PIC ini. Kosongkan untuk menghapus.
+     */
+    public function updateWaGroup(Request $request, int $id)
+    {
+        if ($denied = $this->denyUnlessAllowed($request, $id)) {
+            return $denied;
+        }
+
+        $pic = Pic::findOrFail($id);
+
+        $request->merge([
+            'wa_group_link' => Pic::normalizeWaGroupLink($request->input('wa_group_link')),
+        ]);
+
+        $validated = $request->validate([
+            'wa_group_link' => ['nullable', 'string', 'max:255', 'regex:'.Pic::WA_GROUP_PATTERN],
+        ], [
+            'wa_group_link.regex' => 'Link harus berupa link undangan grup WhatsApp, contoh: https://chat.whatsapp.com/AbC123xyz',
+        ]);
+
+        $pic->update(['wa_group_link' => $validated['wa_group_link']]);
+
+        $role = EnsureRole::roleOf($request->user());
+        LogActivity::log(
+            $role,
+            $request->user()->id,
+            'UPDATE_WA_GROUP',
+            $pic->wa_group_link
+                ? "Link grup WhatsApp PIC {$pic->nama} diperbarui oleh {$request->user()->nama}"
+                : "Link grup WhatsApp PIC {$pic->nama} dihapus oleh {$request->user()->nama}"
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => $pic->wa_group_link
+                ? 'Link grup WhatsApp tersimpan. Anggota baru akan diarahkan ke grup ini setelah mendaftar.'
+                : 'Link grup WhatsApp dihapus.',
+            'data' => ['wa_group_link' => $pic->wa_group_link],
         ]);
     }
 

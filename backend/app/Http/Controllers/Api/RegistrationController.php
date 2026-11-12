@@ -11,7 +11,7 @@ use App\Models\LogActivity;
 class RegistrationController extends Controller
 {
     /**
-     * Check MC registration link and quota status
+     * Check MC registration link
      */
     public function checkLink(string $token)
     {
@@ -24,22 +24,15 @@ class RegistrationController extends Controller
             ], 404);
         }
 
-        $currentCount = $mc->anggotas()->count();
-        $isFull = $currentCount >= Mc::MAX_QUOTA;
-
         return response()->json([
             'success' => true,
             'data' => [
                 'mc_nama' => $mc->nama,
                 'wilayah' => $mc->pic ? $mc->pic->wilayah : 'Wilayah Tidak Diketahui',
-                'quota_count' => $currentCount,
-                'quota_max' => Mc::MAX_QUOTA,
-                'quota_remaining' => max(0, Mc::MAX_QUOTA - $currentCount),
-                'is_quota_full' => $isFull,
+                'member_count' => $mc->anggotas()->count(),
+                'has_wa_group' => filled($mc->pic?->wa_group_link),
             ],
-            'message' => $isFull
-                ? 'Kuota kelompok untuk koordinator ini telah penuh (10/10).'
-                : 'Link pendaftaran aktif. Tersedia slot anggota.',
+            'message' => 'Link pendaftaran aktif.',
         ]);
     }
 
@@ -62,10 +55,12 @@ class RegistrationController extends Controller
                 'max:20',
                 'unique:anggotas,no_hp',
             ],
+            ...Anggota::alumniRules(requireCore: true),
         ], [
             'nik.regex' => 'Nomor Induk Kependudukan (NIK) harus tepat 16 digit angka.',
             'nik.unique' => 'NIK ini sudah terdaftar dalam sistem.',
             'no_hp.unique' => 'Nomor WhatsApp ini sudah terdaftar dalam sistem.',
+            ...Anggota::ALUMNI_MESSAGES,
         ]);
 
         $mc = Mc::where('link_token', trim($request->link_token))->with('pic')->first();
@@ -77,37 +72,30 @@ class RegistrationController extends Controller
             ], 404);
         }
 
-        // Strict Quota Check: Max 10 per MC
-        $currentCount = $mc->anggotas()->count();
-        if ($currentCount >= Mc::MAX_QUOTA) {
-            LogActivity::log('mc', $mc->id, 'REGISTER_REJECTED_QUOTA_FULL', "Pendaftaran ditolak untuk NIK {$request->nik} karena kuota MC {$mc->nama} sudah 10/10.");
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Pendaftaran gagal: Batas kuota kelompok maksimal 10 anggota untuk MC ini telah terpenuhi.',
-                'error_code' => 'QUOTA_FULL',
-            ], 422);
-        }
-
         $anggota = Anggota::create([
             'mc_id' => $mc->id,
             'nama' => $request->nama,
             'nik' => $request->nik,
             'no_hp' => $request->no_hp,
+            'jurusan' => $request->jurusan,
+            'angkatan' => $request->angkatan,
+            'domisili' => $request->domisili,
+            'pekerjaan' => $request->pekerjaan,
+            'masukan' => $request->masukan,
             'created_by' => 'self',
         ]);
 
-        $newCount = $currentCount + 1;
+        $memberCount = $mc->anggotas()->count();
 
         LogActivity::log(
             'anggota',
             $anggota->id,
             'MEMBER_REGISTER',
-            "Anggota baru {$anggota->nama} (NIK: {$anggota->nik}) mendaftar via link pendaftaran MC {$mc->nama}. Kuota MC sekarang: {$newCount}/10"
+            "Anggota baru {$anggota->nama} (NIK: {$anggota->nik}) mendaftar via link pendaftaran MC {$mc->nama}. Total anggota MC sekarang: {$memberCount}"
         );
 
-        // Official WhatsApp group coordination link per PRD 3.2.3
-        $waGroupLink = 'https://chat.whatsapp.com/invitation-paslon-resmi-' . strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $mc->pic->wilayah ?? 'nasional'));
+        // Grup WhatsApp milik PIC dari MC ini (null bila PIC belum mengisinya)
+        $waGroupLink = $mc->pic?->wa_group_link;
 
         return response()->json([
             'success' => true,
@@ -116,7 +104,7 @@ class RegistrationController extends Controller
                 'anggota' => $anggota,
                 'mc' => [
                     'nama' => $mc->nama,
-                    'quota_status' => "{$newCount}/10",
+                    'member_count' => $memberCount,
                 ],
                 'whatsapp_group_link' => $waGroupLink,
             ],

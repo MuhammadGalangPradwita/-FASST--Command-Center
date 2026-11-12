@@ -60,7 +60,6 @@ class RbacService
                     'can_crud_pic' => false,
                     'can_crud_mc' => false,
                     'can_crud_anggota_group' => true,
-                    'max_quota' => 10,
                 ],
                 'dashboard' => [
                     'command_center' => false,

@@ -95,12 +95,12 @@ export default function ChangePasswordModal({ forced = false, onClose, onSuccess
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/50 p-4"
+      className="fixed inset-0 z-[70] flex items-end justify-center bg-slate-950/50 p-0 sm:items-center sm:p-4"
       onClick={(e) => {
         if (!forced && !saving && e.target === e.currentTarget) onClose?.();
       }}
     >
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+      <div className="max-h-[92dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:p-6">
         <div className="mb-5 flex items-start justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className="rounded-xl bg-emerald-50 p-2.5 text-[#0d5c4d]">

@@ -1,0 +1,8 @@
+RewriteEngine On
+
+RewriteRule ^$ /login/ [R=302,L]
+RewriteRule ^daftar/([A-Za-z0-9]+)/?$ /daftar/?token=$1 [R=302,L]
+
+RewriteCond %{HTTP:Authorization} .
+RewriteRule ^api(?:/|$) - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+RewriteRule ^api(?:/|$) api-entry.php [L]

@@ -70,7 +70,7 @@ const ROLE_CONFIGS: Record<Role, { title: string; description: string; icon: Luc
   },
   mc: {
     title: 'MC Koordinator',
-    description: 'Kelola maks. 10 anggota & bagikan link',
+    description: 'Kelola anggota & bagikan link pendaftaran',
     icon: Users,
   },
 };

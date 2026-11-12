@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import AppLayout from '@/components/AppLayout';
 import './globals.css';
@@ -17,7 +17,14 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'Sistem Pemenangan',
   description:
-    'Pendataan pendukung berjenjang: Jenderal, PIC wilayah, MC koordinator (maks. 10 anggota/MC), dan pendaftaran anggota lewat link unik MC.',
+    'Pendataan pendukung berjenjang: Jenderal, PIC wilayah, MC koordinator, dan pendaftaran anggota lewat link unik MC.',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#0d5c4d',
 };
 
 export default function RootLayout({

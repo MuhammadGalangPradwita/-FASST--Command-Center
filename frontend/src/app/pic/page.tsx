@@ -13,6 +13,7 @@ import {
   Pencil,
   KeyRound,
   Trash2,
+  MessageCircle,
 } from 'lucide-react';
 
 import { api } from '@/lib/api';
@@ -21,15 +22,31 @@ import AuthGuard from '@/components/auth/AuthGuard';
 import RegistrationLink from '@/components/RegistrationLink';
 import McMembersModal from '@/components/McMembersModal';
 import ResetPasswordDialog, { ResetRequestBadge } from '@/components/ResetPasswordDialog';
+import WaGroupLinkCard from '@/components/WaGroupLinkCard';
 
 type Pic = {
   id: number;
   nama: string;
   no_hp: string;
   wilayah: string;
+  wa_group_link?: string | null;
   mcs_count?: number;
   password_reset_requested_at?: string | null;
 };
+
+function WaGroupBadge({ link }: { link?: string | null }) {
+  return link ? (
+    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+      <MessageCircle className="h-3 w-3" />
+      Grup WA aktif
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+      <MessageCircle className="h-3 w-3" />
+      Grup WA belum diisi
+    </span>
+  );
+}
 
 type PicForm = {
   nama: string;
@@ -44,11 +61,11 @@ type PicDetail = {
     nama: string;
     no_hp: string;
     wilayah: string;
+    wa_group_link: string | null;
   };
   summary: {
     total_mcs: number;
     total_registered: number;
-    target_voters: number;
   };
   mcs: {
     id: number;
@@ -56,8 +73,6 @@ type PicDetail = {
     no_hp: string;
     link_token: string;
     quota_count: number;
-    quota_max: number;
-    is_full: boolean;
   }[];
 };
 
@@ -364,7 +379,69 @@ useEffect(() => {
                 : 'Tidak ditemukan PIC yang sesuai dengan pencarian.'}
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            {/* Kartu PIC untuk layar kecil */}
+            <ul className="space-y-3 md:hidden">
+              {filteredPics.map((pic) => (
+                <li key={pic.id} className="rounded-2xl border border-slate-200 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-slate-900">
+                        {pic.nama}
+                        <ResetRequestBadge requestedAt={pic.password_reset_requested_at} />
+                      </p>
+                      <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-slate-500">
+                        <MapPin className="h-3 w-3 text-slate-400" />
+                        {pic.wilayah || '-'} · {pic.no_hp || '-'}
+                      </p>
+                      <div className="mt-1.5">
+                        <WaGroupBadge link={pic.wa_group_link} />
+                      </div>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
+                      {pic.mcs_count ?? 0} MC
+                    </span>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-4 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void openDetail(pic)}
+                      className="inline-flex min-h-10 flex-col items-center justify-center gap-0.5 rounded-xl border border-slate-200 text-[11px] font-semibold text-slate-700 active:bg-emerald-50"
+                    >
+                      <Eye className="h-4 w-4" />
+                      Detail
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openEditModal(pic)}
+                      className="inline-flex min-h-10 flex-col items-center justify-center gap-0.5 rounded-xl border border-slate-200 text-[11px] font-semibold text-slate-700 active:bg-blue-50"
+                    >
+                      <Pencil className="h-4 w-4" />
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setResettingPic(pic)}
+                      className="inline-flex min-h-10 flex-col items-center justify-center gap-0.5 rounded-xl border border-slate-200 text-[11px] font-semibold text-slate-700 active:bg-amber-50"
+                    >
+                      <KeyRound className="h-4 w-4" />
+                      Reset
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openDeleteModal(pic)}
+                      className="inline-flex min-h-10 flex-col items-center justify-center gap-0.5 rounded-xl border border-red-100 text-[11px] font-semibold text-red-600 active:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Hapus
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            <div className="hidden overflow-x-auto md:block">
               <table className="w-full min-w-[750px] text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-100 text-xs text-slate-400">
@@ -373,6 +450,7 @@ useEffect(() => {
                     <th className="pb-3 font-medium">No. Handphone</th>
                     <th className="pb-3 font-medium">Wilayah</th>
                     <th className="pb-3 font-medium">Jumlah MC</th>
+                    <th className="pb-3 font-medium">Grup WA</th>
                     <th className="pb-3 pr-2 text-right font-medium">Aksi</th>
                   </tr>
                 </thead>
@@ -405,6 +483,10 @@ useEffect(() => {
 
                       <td className="py-4 text-slate-600">
                         {pic.mcs_count ?? 0} MC
+                      </td>
+
+                      <td className="py-4">
+                        <WaGroupBadge link={pic.wa_group_link} />
                       </td>
 
                       <td className="py-4 pr-2">
@@ -452,19 +534,20 @@ useEffect(() => {
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </div>
 
         {showModal && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4"
+            className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-0 sm:items-center sm:p-4"
             onClick={(e) => {
               if (e.target === e.currentTarget && !submitting) {
                 setShowModal(false);
               }
             }}
           >
-            <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
+            <div className="max-h-[92dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-t-3xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:p-6">
               <div className="mb-5 flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">
@@ -597,14 +680,14 @@ useEffect(() => {
 
         {showDetail && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4"
+            className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-0 sm:items-center sm:p-4"
             onClick={(e) => {
               if (e.target === e.currentTarget) {
                 setShowDetail(false);
               }
             }}
           >
-            <div className="flex max-h-[90vh] w-full max-w-3xl flex-col rounded-2xl bg-white p-6 shadow-xl">
+            <div className="flex max-h-[92dvh] w-full max-w-3xl flex-col rounded-t-3xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:max-h-[90vh] sm:rounded-2xl sm:p-6">
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">
@@ -646,7 +729,7 @@ useEffect(() => {
                   <div className="grid grid-cols-2 gap-3">
                     {[
                       { label: 'Jumlah MC', value: detail.summary.total_mcs },
-                      { label: 'Anggota Terdaftar', value: `${detail.summary.total_registered}/${detail.summary.target_voters}` },
+                      { label: 'Anggota Terdaftar', value: detail.summary.total_registered },
                     ].map((stat) => (
                       <div
                         key={stat.label}
@@ -659,6 +742,17 @@ useEffect(() => {
                       </div>
                     ))}
                   </div>
+
+                  <WaGroupLinkCard
+                    key={detail.pic.id}
+                    picId={detail.pic.id}
+                    link={detail.pic.wa_group_link}
+                    onSaved={(link) =>
+                      setPics((prev) =>
+                        prev.map((p) => (p.id === detail.pic.id ? { ...p, wa_group_link: link } : p)),
+                      )
+                    }
+                  />
 
                   <div>
                     <h3 className="mb-3 text-sm font-bold text-slate-900">
@@ -678,7 +772,7 @@ useEffect(() => {
                               <th className="pb-3 font-medium">Nama MC</th>
                               <th className="pb-3 font-medium">No. Handphone</th>
                               <th className="pb-3 font-medium">Link Pendaftaran</th>
-                              <th className="pb-3 font-medium">Kuota Anggota</th>
+                              <th className="pb-3 font-medium">Jumlah Anggota</th>
                               <th className="pb-3 pr-2 text-right font-medium">Aksi</th>
                             </tr>
                           </thead>
@@ -699,14 +793,8 @@ useEffect(() => {
                                   <RegistrationLink token={mc.link_token} compact />
                                 </td>
                                 <td className="py-3">
-                                  <span
-                                    className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                                      mc.is_full
-                                        ? 'bg-red-50 text-red-700'
-                                        : 'bg-emerald-50 text-emerald-700'
-                                    }`}
-                                  >
-                                    {mc.quota_count}/{mc.quota_max}
+                                  <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                                    {mc.quota_count} anggota
                                   </span>
                                 </td>
                                 <td className="py-3 pr-2 text-right">
@@ -757,14 +845,14 @@ useEffect(() => {
 
         {deletingPic && (
           <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4"
+            className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-0 sm:items-center sm:p-4"
             onClick={(e) => {
               if (e.target === e.currentTarget && !deleting) {
                 setDeletingPic(null);
               }
             }}
           >
-            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="max-h-[92dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-2xl sm:p-6">
               <div className="mb-4 flex items-start gap-3">
                 <div className="rounded-xl bg-red-50 p-2.5">
                   <Trash2 className="h-5 w-5 text-red-600" />

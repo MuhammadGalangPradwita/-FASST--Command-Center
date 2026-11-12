@@ -16,7 +16,7 @@ import { api } from '@/lib/api';
 
 // Sama dengan Pic::WA_GROUP_PATTERN di backend (https:// boleh tidak ditulis)
 const WA_GROUP_PATTERN =
-  /^(https?:\/\/)?(www\.)?chat\.whatsapp\.com\/(invite\/)?[A-Za-z0-9]{10,64}(\?\S*)?$/i;
+  /^(https?:\/\/)?(www\.)?(chat\.whatsapp\.com\/(invite\/)?|whatsapp\.com\/channel\/)[A-Za-z0-9]{10,64}(\?\S*)?$/i;
 
 interface WaGroupLinkCardProps {
   picId: number;
@@ -182,7 +182,7 @@ export default function WaGroupLinkCard({ picId, link, onSaved }: WaGroupLinkCar
           {!looksValid ? (
             <p className="flex items-start gap-1.5 text-[11px] text-red-600">
               <AlertCircle className="mt-px h-3.5 w-3.5 shrink-0" />
-              Harus link undangan grup, contoh: https://chat.whatsapp.com/AbC123xyz
+              Harus link undangan grup atau saluran WhatsApp, contoh: https://chat.whatsapp.com/AbC123xyz
             </p>
           ) : (
             <p className="flex items-start gap-1.5 text-[11px] text-slate-500">

@@ -103,7 +103,7 @@ export default function McMembersModal({ mcId, mcNama, onClose }: McMembersModal
                   {detail.mc.wilayah && ` (${detail.mc.wilayah})`}
                 </p>
                 <div className="mt-2">
-                  <RegistrationLink token={detail.mc.link_token} />
+                  <RegistrationLink token={detail.mc.link_token} mcNama={detail.mc.nama} />
                 </div>
               </>
             )}

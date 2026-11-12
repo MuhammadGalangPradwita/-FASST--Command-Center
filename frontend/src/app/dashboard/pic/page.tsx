@@ -337,7 +337,7 @@ function PicDashboardContent() {
 
                 <div className="mt-3 flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2">
                   <span className="text-xs text-slate-500">Link pendaftaran</span>
-                  <RegistrationLink token={mc.link_token} compact />
+                  <RegistrationLink token={mc.link_token} mcNama={mc.nama} compact />
                 </div>
 
                 <div className="mt-3 grid grid-cols-2 gap-2">
@@ -385,7 +385,7 @@ function PicDashboardContent() {
                     </td>
                     <td className="py-4 text-slate-600">{mc.no_hp || '-'}</td>
                     <td className="py-4">
-                      <RegistrationLink token={mc.link_token} compact />
+                      <RegistrationLink token={mc.link_token} mcNama={mc.nama} compact />
                     </td>
                     <td className="py-4">
                       <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">

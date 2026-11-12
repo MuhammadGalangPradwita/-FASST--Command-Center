@@ -1,4 +1,5 @@
 RewriteEngine On
+RewriteRule ^backend(?:/|$) - [F,L]
 
 RewriteRule ^$ /login/ [R=302,L]
 RewriteRule ^daftar/([A-Za-z0-9]+)/?$ /daftar/?token=$1 [R=302,L]
@@ -6,3 +7,14 @@ RewriteRule ^daftar/([A-Za-z0-9]+)/?$ /daftar/?token=$1 [R=302,L]
 RewriteCond %{HTTP:Authorization} .
 RewriteRule ^api(?:/|$) - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 RewriteRule ^api(?:/|$) api-entry.php [L]
+
+# Halaman HTML/RSC selalu dicek ulang ke server agar tampilan baru langsung terlihat
+# setelah deploy. File di _next/static bernama hash, jadi aman di-cache lama.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|txt)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+  <If "%{REQUEST_URI} =~ m#^/_next/static/#">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </If>
+</IfModule>

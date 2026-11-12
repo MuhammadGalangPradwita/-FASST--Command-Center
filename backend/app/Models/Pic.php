@@ -22,10 +22,11 @@ class Pic extends Authenticatable
     ];
 
     /**
-     * Format link undangan grup WhatsApp, mis. https://chat.whatsapp.com/AbC123xyz
+     * Format link undangan grup WhatsApp, mis. https://chat.whatsapp.com/AbC123xyz,
+     * atau link saluran (channel), mis. https://whatsapp.com/channel/0029Va...
      * (boleh diikuti query seperti ?mode=ems_copy_t dari tombol "Salin link").
      */
-    public const WA_GROUP_PATTERN = '/^https:\/\/chat\.whatsapp\.com\/(invite\/)?[A-Za-z0-9]{10,64}(\?[^\s]*)?$/';
+    public const WA_GROUP_PATTERN = '/^https:\/\/(chat\.whatsapp\.com\/(invite\/)?|whatsapp\.com\/channel\/)[A-Za-z0-9]{10,64}(\?[^\s]*)?$/';
 
     /**
      * Rapikan link yang ditempel PIC: buang spasi, lengkapi "https://" bila tidak ada.

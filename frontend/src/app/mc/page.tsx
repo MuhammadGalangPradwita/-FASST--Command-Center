@@ -373,7 +373,7 @@ function McList() {
 
                   <div className="mt-3 flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2">
                     <span className="text-xs text-slate-500">Link pendaftaran</span>
-                    <RegistrationLink token={mc.link_token} compact />
+                    <RegistrationLink token={mc.link_token} mcNama={mc.nama} compact />
                   </div>
 
                   <div className={`mt-3 grid gap-2 ${isPic ? 'grid-cols-3' : 'grid-cols-4'}`}>
@@ -453,7 +453,7 @@ function McList() {
                       </td>
 
                       <td className="py-4">
-                        <RegistrationLink token={mc.link_token} compact />
+                        <RegistrationLink token={mc.link_token} mcNama={mc.nama} compact />
                       </td>
 
                       {!isPic && (
@@ -689,7 +689,7 @@ function McList() {
                     )}
                   </p>
                   <div className="mt-2">
-                    <RegistrationLink token={detailMc.link_token} />
+                    <RegistrationLink token={detailMc.link_token} mcNama={detailMc.nama} />
                   </div>
                 </div>
 

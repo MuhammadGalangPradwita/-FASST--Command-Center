@@ -76,6 +76,24 @@ function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   });
 }
 
+function qrFileName(mcNama: string): string {
+  return `qr-pendaftaran-${slugify(mcNama)}.png`;
+}
+
+/**
+ * Unduh poster QR pendaftaran satu MC sebagai PNG. Dipakai juga oleh PIC &
+ * Jenderal lewat tombol "QR" di RegistrationLink.
+ */
+export async function downloadQrPoster(token: string, mcNama: string): Promise<void> {
+  const blob = await canvasToBlob(await renderPoster(getRegistrationUrl(token), mcNama));
+  const href = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = href;
+  link.download = qrFileName(mcNama);
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(href), 1000);
+}
+
 /**
  * Kartu QR code link pendaftaran MC: pratinjau, unduh poster PNG, salin, dan bagikan.
  */
@@ -94,7 +112,7 @@ export default function RegistrationQr({ token, mcNama }: RegistrationQrProps) {
     }
   });
 
-  const fileName = `qr-pendaftaran-${slugify(mcNama)}.png`;
+  const fileName = qrFileName(mcNama);
   const shareText = `Halo! Silakan daftar sebagai anggota tim melalui link berikut: ${url}`;
 
   useEffect(() => {
@@ -129,13 +147,7 @@ export default function RegistrationQr({ token, mcNama }: RegistrationQrProps) {
   const handleDownload = async () => {
     setBusy(true);
     try {
-      const blob = await canvasToBlob(await renderPoster(url, mcNama));
-      const href = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = href;
-      link.download = fileName;
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(href), 1000);
+      await downloadQrPoster(token, mcNama);
     } catch (err) {
       console.error(err);
     } finally {

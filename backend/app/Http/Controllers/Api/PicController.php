@@ -116,7 +116,7 @@ class PicController extends Controller
         $validated = $request->validate([
             'wa_group_link' => ['nullable', 'string', 'max:255', 'regex:'.Pic::WA_GROUP_PATTERN],
         ], [
-            'wa_group_link.regex' => 'Link harus berupa link undangan grup WhatsApp, contoh: https://chat.whatsapp.com/AbC123xyz',
+            'wa_group_link.regex' => 'Link harus berupa link undangan grup atau saluran WhatsApp, contoh: https://chat.whatsapp.com/AbC123xyz',
         ]);
 
         $pic->update(['wa_group_link' => $validated['wa_group_link']]);

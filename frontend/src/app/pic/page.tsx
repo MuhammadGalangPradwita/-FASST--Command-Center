@@ -790,7 +790,7 @@ useEffect(() => {
                                   {mc.no_hp || '-'}
                                 </td>
                                 <td className="py-3">
-                                  <RegistrationLink token={mc.link_token} compact />
+                                  <RegistrationLink token={mc.link_token} mcNama={mc.nama} compact />
                                 </td>
                                 <td className="py-3">
                                   <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
